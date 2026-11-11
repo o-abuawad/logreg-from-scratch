@@ -1,4 +1,3 @@
-```markdown
 # Logistic Regression Classifier
 
 A scratch implementation of binary logistic regression using mini-batch gradient descent to predict diabetes onset from clinical diagnostic data. Built strictly using NumPy and Pandas without high-level machine learning frameworks.
@@ -111,7 +110,3 @@ Running the script outputs terminal performance tables along with the following 
 * `Q5_batch_sizes.png` — Validation accuracy trajectories across batch sizes.
 * `Q6_regularization.png` — Accuracy vs. regularization strength ($\lambda$).
 * `Q7_norm_acc_lr_<lr>.png` — Convergence trajectories with normalized features.
-
-```
-
-```
