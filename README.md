@@ -1,166 +1,117 @@
-# Binary Logistic Regression from Scratch
+```markdown
+# Logistic Regression Classifier
 
-A minimal, pure-NumPy implementation of a binary logistic regression classifier trained via mini-batch gradient descent. Designed for empirical benchmarking on clinical diagnostic data (Pima Indians Diabetes dataset).
+A scratch implementation of binary logistic regression using mini-batch gradient descent to predict diabetes onset from clinical diagnostic data. Built strictly using NumPy and Pandas without high-level machine learning frameworks.
 
 ---
 
 ## Overview
 
-This repository implements binary logistic regression without relying on high-level machine learning libraries (such as `scikit-learn`). All forward passes, gradient calculations, loss evaluations, and optimization loops are vectorized using NumPy.
+The model optimizes binary cross-entropy loss over clinical diagnostic attributes to classify outcomes ($y \in \{0, 1\}$). The pipeline covers data ingestion, gradient descent optimization, hyperparameter tuning, L2 regularization, feature scaling, and sample shuffling.
 
-The implementation supports:
+### Key Components
 
-* **Optimization:** Mini-batch gradient descent.
-
-
-* **Regularization:** $L_2$ weight decay (Ridge penalty).
-
-
-* **Preprocessing:** Min-max feature normalization fitted strictly on training distributions to prevent data leakage.
-
-
-* **Numerical Stability:** Exponential bounds on logits and probability clipping against extreme log values.
+- **Loss Function:** Binary Cross-Entropy (Log Loss).
+- **Optimization:** Mini-Batch Gradient Descent (vectorized).
+- **Evaluation Metric:** Classification Accuracy ($\%$) on train, validation (dev), and test splits.
+- **Regularization:** $L_2$ weight decay penalty on weight vectors ($w$).
+- **Preprocessing:** Min-Max feature normalization computed strictly on training distributions.
 
 ---
 
-## Mathematical Formulation
-
-### 1. Hypothesis Function
-
-Given an input sample $x \in \mathbb{R}^{d}$, the linear combination and the activation are computed as:
-
-$$z = x^T W + b$$
-
-$$\hat{y} = \sigma(z) = \frac{1}{1 + e^{-z}}$$
-
-Where $W \in \mathbb{R}^{d \times 1}$ is the weight vector, $b \in \mathbb{R}$ is the bias scalar, and $\sigma(z) \in (0, 1)$ represents the posterior probability $P(y = 1 \mid x)$.
-
-### 2. Objective Function (Binary Cross-Entropy with $L_2$ Penalty)
-
-For a batch of $m$ observations, the penalized empirical risk is defined as:
-
-$$J(W, b) = -\frac{1}{m} \sum_{i=1}^{m} \left[ y^{(i)} \log(\hat{y}^{(i)}) + (1 - y^{(i)}) \log(1 - \hat{y}^{(i)}) \right] + \frac{\lambda}{2m} \Vert{}W\Vert{}_2^2$$
-
-Where:
-
-* $y^{(i)} \in \{0, 1\}$ denotes the binary ground truth.
-
-
-* $\lambda \ge 0$ is the regularization coefficient.
-
-
-* The bias term $b$ is unregularized.
-
-### 3. Gradient Updates
-
-The partial derivatives with respect to parameters across a mini-batch of size $m$ are:
-
-$$\frac{\partial J}{\partial W} = \frac{1}{m} X^T (\hat{Y} - Y) + \frac{\lambda}{m} W$$
-
-$$\frac{\partial J}{\partial b} = \frac{1}{m} \sum_{i=1}^{m} (\hat{y}^{(i)} - y^{(i)})$$
-
-Parameters update iteratively with learning rate $\eta$:
-
-$$W \leftarrow W - \eta \frac{\partial J}{\partial W}$$
-
-$$b \leftarrow b - \eta \frac{\partial J}{\partial b}$$
-
----
-
-## Repository Structure
+## Project Structure
 
 ```text
 .
-├── data/
-│   ├── train.csv           # 468 training records[cite: 1]
-│   ├── validation.csv      # 100 validation records[cite: 2]
-│   └── test.csv            # 200 evaluation records[cite: 2]
-├── src/
-│   ├── __init__.py         # Package exports
-│   ├── data_loader.py      # I/O, array formatting, and min-max scaling[cite: 2, 4]
-│   ├── metrics.py          # Loss functions and classification accuracy[cite: 2]
-│   └── model.py            # LogisticRegression classifier class[cite: 2]
-├── run_experiments.py      # Experiment driver covering assignment benchmarks (Q1-Q8)[cite: 3, 4]
-├── requirements.txt        # Minimal environment dependencies[cite: 1]
+├── diabetes_train.csv       # Training split (468 records)
+├── diabetes_dev.csv         # Validation split (100 records)
+├── diabetes_test.csv        # Test split (200 records)
+├── main.py                  # Full implementation and experimental harness
+├── requirements.txt         # Environment dependencies
 └── README.md
 
 ```
 
 ---
 
-## Setup
+## Requirements
 
-### Requirements
+* Python 3.8+
+* `numpy`
+* `pandas`
+* `matplotlib`
 
-* Python 3.9+
-* NumPy $\ge$ 1.20
-
-
-* Pandas $\ge$ 1.3
-
-
-* Matplotlib $\ge$ 3.4
-
-
+Install dependencies:
 
 ```bash
-git clone https://github.com/your-username/pima-logistic-scratch.git
-cd pima-logistic-scratch
-pip install -r requirements.txt
+pip install numpy pandas matplotlib
 
 ```
 
 ---
 
-## Usage Example
+## Usage
 
-```python
-from src.data_loader import load_dataset, split_features_target, min_max_normalize
-from src.model import LogisticRegression
-from src.metrics import compute_accuracy
+Ensure the dataset CSV files (`diabetes_train.csv`, `diabetes_dev.csv`, `diabetes_test.csv`) reside in the root directory alongside the source file.
 
-# 1. Load and split raw data[cite: 2]
-train_df = load_dataset("data/train.csv")
-val_df = load_dataset("data/validation.csv")
+Run the entire pipeline:
 
-X_train, y_train = split_features_target(train_df)
-X_val, y_val = split_features_target(val_df)
-
-# 2. Scale features using training boundaries only[cite: 4]
-X_train_norm, X_val_norm, _ = min_max_normalize(X_train, X_val=X_val)
-
-# 3. Instantiate model with L2 regularization[cite: 4]
-clf = LogisticRegression(learning_rate=0.01, l2_penalty=0.1)
-
-# 4. Train via mini-batch gradient descent[cite: 2]
-status = clf.fit(X_train_norm, y_train, epochs=1000, batch_size=16)
-
-# 5. Evaluate accuracy on unseen validation data[cite: 2]
-val_preds = clf.predict(X_val_norm)
-accuracy = compute_accuracy(y_val, val_preds)
-print(f"Validation Accuracy: {accuracy:.2f}%")
+```bash
+python3 main.py
 
 ```
 
 ---
 
-## Experiments Tracked
+## Pipeline & Experiments
 
-The evaluation script `run_experiments.py` reproduces the following benchmarks:
+The script executes the following sequential experimental modules:
 
-* **Learning Rate Grid Search (Q1):** Tests $\eta \in [10^4, \dots, 10^{-5}]$ across $N \in [10, 100, 1000, 10000]$ iterations to identify divergence boundaries and stable convergence regimes.
-
-
-* **Learning Curves (Q2 & Q3):** Iteration-by-iteration trajectory plots of empirical risk and accuracy across $\eta \in \{0.1, 0.001, 0.00001\}$.
-
-
-* **Batch Size Dynamics (Q5):** Compares variance and convergence efficiency for $B \in \{4, 8, 16, 32, 64\}$.
+1. **Learning Rate & Iteration Grid Search (`run_q1`)**
+* Evaluates learning rates $\eta \in [10^{-5}, 10^4]$ across $[10, 100, 1000, 10000]$ iterations with batch size $16$.
+* Tracks convergence boundaries, divergence thresholds, and numerical overflow points.
 
 
-* **$L_2$ Regularization (Q6):** Evaluates generalization delta across penalty terms $\lambda \in [0.001, 10.0]$.
+2. **Convergence Dynamics (`run_q2_q3_q4`)**
+* Plots loss and accuracy trajectories over $1000$ iterations for $\eta \in \{0.1, 0.001, 0.00001\}$.
+* Evaluates the optimal unnormalized baseline configuration on the test set.
 
 
-* **Feature Normalization Impact (Q7):** Convergence speed and condition number effects comparing raw versus min-max normalized features.
+3. **Batch Size Sensitivity (`run_q5`)**
+* Compares validation performance across mini-batch sizes: $B \in \{4, 8, 16, 32, 64\}$ at $\eta = 0.01$.
 
 
-* **Stochasticity via Shuffling (Q8):** Quantifies variance in final validation metrics over multiple random dataset permutations under mini-batch sampling.
+4. **$L_2$ Regularization (`run_q6`)**
+* Implements parameter shrinkage: $\nabla_w \mathcal{L}_{reg} = \nabla_w \mathcal{L} + \frac{\lambda}{m} w$.
+* Tests regularization strengths $\lambda \in [0.0, 10.0]$ to evaluate generalization and prevent overfitting.
+
+
+5. **Min-Max Feature Scaling (`run_q7`)**
+* Scales input features to $[0, 1]$ using training set extrema:
+
+$$X_{norm} = \frac{X - X_{min}^{train}}{X_{max}^{train} - X_{min}^{train}}$$
+
+
+* Prevents vanishing/exploding gradients across heterogeneous measurement scales.
+
+
+6. **Stochastic Ordering / Shuffling (`run_q8`)**
+* Tests sensitivity to mini-batch sample ordering using multiple random seed permutations ($10, 42, 99$).
+
+
+
+---
+
+## Output Artifacts
+
+Running the script outputs terminal performance tables along with the following diagnostic plots:
+
+* `Q2_acc_lr_<lr>.png` — Accuracy curves per learning rate.
+* `Q3_loss_lr_<lr>.png` — Loss curves per learning rate.
+* `Q5_batch_sizes.png` — Validation accuracy trajectories across batch sizes.
+* `Q6_regularization.png` — Accuracy vs. regularization strength ($\lambda$).
+* `Q7_norm_acc_lr_<lr>.png` — Convergence trajectories with normalized features.
+
+```
+
+```
